@@ -99,11 +99,6 @@ func pageERR(_ fyne.Window, err int) *fyne.Container {
 
 func pageInstall(w fyne.Window) *fyne.Container {
 	var path string
-	var steamIcon fyne.Resource
-
-	appDir, _ := os.Getwd()
-	steamIcon, _ = fyne.LoadResourceFromPath(filepath.Join(appDir, "resources", "steamIcon.png"))
-	widget.NewIcon(steamIcon)
 
 	label := widget.NewLabel("Выберите путь до игры. Если она установлена по стандартному пути нажмите на кнопку Steam.")
 	labelPath := widget.NewLabel("")
@@ -114,7 +109,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 	})
 	btnContinue.Disable()
 
-	btnSteam := widget.NewButtonWithIcon("Steam", steamIcon, func() {
+	btnSteam := widget.NewButtonWithIcon("Steam", theme.ComputerIcon(), func() {
 		// Choose default path to game depending on OS
 		if runtime.GOOS == "windows" {
 			path = filepath.Join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", "ENA Dream BBQ")
