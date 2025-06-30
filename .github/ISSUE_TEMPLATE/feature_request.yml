@@ -1,0 +1,11 @@
+name: "Запрос на добавление"
+description: "Если у вас есть хорошая идея."
+labels: ["triage"]
+body:
+  - type: textarea
+    id: description
+    validations:
+      required: true
+    attributes:
+      label: "Описание"
+      description: "Опишите запрос как можно подробнее"
