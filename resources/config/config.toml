@@ -8,8 +8,8 @@ MainLabel = ""
 TeamLabel = "" # Don't forget 2 spaces at start
 ButtonContinue = ""
 # Second page
-isSteamDisabled = false
-isCheckExecutableDisabled = false
+isSteamEnabled = false
+isCheckExecutableEnabled = false
 ChoosePathLabel = ""
 ButtonInstall = ""
 LabelPath = ""

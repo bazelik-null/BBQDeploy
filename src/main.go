@@ -29,12 +29,12 @@ type Config struct {
 	TeamLabel      string
 	ButtonContinue string
 	// Second page
-	isSteamDisabled           bool
-	isCheckExecutableDisabled bool
-	ChoosePathLabel           string
-	ButtonInstall             string
-	LabelPath                 string
-	ButtonBrowse              string
+	isSteamEnabled           bool
+	isCheckExecutableEnabled bool
+	ChoosePathLabel          string
+	ButtonInstall            string
+	LabelPath                string
+	ButtonBrowse             string
 	// Executable error
 	ExecutableError string
 	// Integrity error
@@ -156,7 +156,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 			path = filepath.Join(homeDir, ".steam", "root", "steamapps", "common", conf.Name)
 		}
 		// Check if there is executable game file
-		if conf.isCheckExecutableDisabled == false {
+		if conf.isCheckExecutableEnabled == false {
 			checkExecutable(path, btnInstall, errorLabel)
 		}
 		// Display chosen path
@@ -167,7 +167,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		browseFile(w, func(selectedPath string) {
 			path = selectedPath
 			// Check if there is executable game file
-			if conf.isCheckExecutableDisabled == false {
+			if conf.isCheckExecutableEnabled == false {
 				checkExecutable(path, btnInstall, errorLabel)
 			}
 			// Display chosen path
@@ -175,7 +175,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		})
 	})
 
-	if conf.isCheckExecutableDisabled == true {
+	if conf.isCheckExecutableEnabled == true {
 		btnInstall.Enable()
 	}
 
@@ -190,7 +190,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		),
 	)
 
-	if conf.isSteamDisabled == true {
+	if conf.isSteamEnabled == true {
 		btnSteam.Hide()
 	}
 
