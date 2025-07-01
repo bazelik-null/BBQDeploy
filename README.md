@@ -2,6 +2,8 @@
 <h1>🚀BBQDeploy: Online Installer for GitHub Projects🚀</h1>
 </div>
 
+[РУССКИЙ](https://github.com/bazelik-null/BBQDeploy/blob/main/README_RU.md)
+
 >[!CAUTION]
 >
 >🛠️ Work In Progress
