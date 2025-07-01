@@ -1,0 +1,23 @@
+#Global
+ButtonClose = ""
+ExecutableName = ""
+Name = ""
+# Download error
+DownloadErrorLabel = "" #First page
+MainLabel = ""
+TeamLabel = "" # Don't forget 2 spaces at start
+ButtonContinue = ""
+# Second page
+isSteamEnabled = false
+isCheckExecutableEnabled = false
+ChoosePathLabel = ""
+ButtonInstall = ""
+LabelPath = ""
+ButtonBrowse = ""
+#Executable error
+ExecutableError = ""
+#Integrity error
+IntegrityError = ""
+#Injection error
+InjectionError = "" #Third page
+ThanksLabel = ""

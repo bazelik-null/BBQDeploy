@@ -2,11 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image/color"
-	"os"
-	"path/filepath"
-	"runtime"
-
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
@@ -15,21 +10,56 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/BurntSushi/toml"
+	"image/color"
+	"os"
+	"path/filepath"
+	"runtime"
 )
+
+type Config struct {
+	// Global
+	ButtonClose    string
+	ExecutableName string
+	Name           string
+	// Download error
+	DownloadError string
+	// First page
+	MainLabel      string
+	TeamLabel      string
+	ButtonContinue string
+	// Second page
+	isSteamEnabled           bool
+	isCheckExecutableEnabled bool
+	ChoosePathLabel          string
+	ButtonInstall            string
+	LabelPath                string
+	ButtonBrowse             string
+	// Executable error
+	ExecutableError string
+	// Integrity error
+	IntegrityError string
+	// Injection error
+	InjectionError string
+	// Third page
+	ThanksLabel string
+}
+
+var conf Config
 
 func main() {
 	// Init app
 	a := app.New()
-	w := a.NewWindow("Установщик русификатора для ENA: Dream BBQ")
+	w := a.NewWindow("BBQDeploy")
 	w.Resize(fyne.NewSize(800, 600))
 
-	mainLabel := widget.NewLabel("Пожалуйста подождите, идёт загрузка ресурсов установщика...")
+	loadingLabel := widget.NewLabel("Downloading resources, please wait...")
 	loadingWidget := widget.NewActivity()
 	loadingWidget.Start()
 
 	init := container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
-			mainLabel,
+			loadingLabel,
 			loadingWidget,
 		),
 	)
@@ -43,6 +73,14 @@ func main() {
 		if err != 0 {
 			w.SetContent(pageERR(w, err))
 		} else {
+			// Extract data from config
+			appDir, _ := os.Getwd()
+			tomlPath := filepath.Join(appDir, "resources", "config", "config.toml")
+			tomlData, _ := os.ReadFile(tomlPath)
+			_, err := toml.Decode(string(tomlData), &conf)
+			if err != nil {
+				fmt.Println(err)
+			}
 			fyne.Do(func() {
 				w.SetContent(page0(w))
 			})
@@ -53,14 +91,14 @@ func main() {
 }
 
 func page0(w fyne.Window) *fyne.Container {
-	mainLabel := widget.NewLabel("Добро пожаловать в установщик русификатора для ENA: Dream BBQ")
+	mainLabel := widget.NewLabel(conf.MainLabel)
 
-	teamLabel := canvas.NewText("  by BARBEQUE TEAM", color.RGBA{R: 169, G: 169, B: 169, A: 255})
+	teamLabel := canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255})
 	teamLabel.TextSize = 12
 
 	errorLabel := canvas.NewText("", color.RGBA{R: 255, A: 255})
 
-	btnContinue := widget.NewButton("Продолжить", func() {
+	btnContinue := widget.NewButton(conf.ButtonContinue, func() {
 		w.SetContent(pageInstall(w))
 	})
 
@@ -80,10 +118,10 @@ func page0(w fyne.Window) *fyne.Container {
 }
 
 func pageERR(_ fyne.Window, err int) *fyne.Container {
-	errLabel := canvas.NewText("[FATL]: Произошла критическая ошибка при загрузке файлов.", color.RGBA{R: 255, A: 255})
+	errLabel := canvas.NewText(conf.DownloadError, color.RGBA{R: 255, A: 255})
 	errCode := canvas.NewText("[FATL]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
 
-	buttonClose := widget.NewButtonWithIcon("Закрыть", theme.WindowCloseIcon(), func() {
+	buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
 		fyne.CurrentApp().Quit()
 	})
 
@@ -100,59 +138,71 @@ func pageERR(_ fyne.Window, err int) *fyne.Container {
 func pageInstall(w fyne.Window) *fyne.Container {
 	var path string
 
-	label := widget.NewLabel("Выберите путь до игры. Если она установлена по стандартному пути нажмите на кнопку Steam.")
+	choosePathLabel := widget.NewLabel(conf.ChoosePathLabel)
 	labelPath := widget.NewLabel("")
 	errorLabel := canvas.NewText("", color.RGBA{R: 255, A: 255})
 
-	btnContinue := widget.NewButtonWithIcon("Установить", theme.DownloadIcon(), func() {
+	btnInstall := widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
 		w.SetContent(pageEnd(path))
 	})
-	btnContinue.Disable()
+	btnInstall.Disable()
 
 	btnSteam := widget.NewButtonWithIcon("Steam", theme.ComputerIcon(), func() {
 		// Choose default path to game depending on OS
 		if runtime.GOOS == "windows" {
-			path = filepath.Join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", "ENA Dream BBQ")
+			path = filepath.Join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", conf.Name)
 		} else {
 			homeDir := os.Getenv("HOME")
-			path = filepath.Join(homeDir, ".steam", "root", "steamapps", "common", "ENA Dream BBQ")
+			path = filepath.Join(homeDir, ".steam", "root", "steamapps", "common", conf.Name)
 		}
 		// Check if there is executable game file
-		checkExecutable(path, btnContinue, errorLabel)
+		if conf.isCheckExecutableEnabled == false {
+			checkExecutable(path, btnInstall, errorLabel)
+		}
 		// Display chosen path
-		labelPath.SetText("Выбранный путь: " + path)
+		labelPath.SetText(conf.LabelPath + path)
 	})
 
-	btnBrowse := widget.NewButtonWithIcon("Открыть", theme.SearchIcon(), func() {
+	btnBrowse := widget.NewButtonWithIcon(conf.ButtonBrowse, theme.SearchIcon(), func() {
 		browseFile(w, func(selectedPath string) {
 			path = selectedPath
 			// Check if there is executable game file
-			checkExecutable(path, btnContinue, errorLabel)
+			if conf.isCheckExecutableEnabled == false {
+				checkExecutable(path, btnInstall, errorLabel)
+			}
 			// Display chosen path
-			labelPath.SetText("Выбранный путь: " + path)
+			labelPath.SetText(conf.LabelPath + path)
 		})
 	})
 
+	if conf.isCheckExecutableEnabled == true {
+		btnInstall.Enable()
+	}
+
 	pageInstall := container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
-			label,
+			choosePathLabel,
 			btnSteam,
 			btnBrowse,
 			labelPath,
 			errorLabel,
-			btnContinue,
+			btnInstall,
 		),
 	)
+
+	if conf.isSteamEnabled == true {
+		btnSteam.Hide()
+	}
 
 	return pageInstall
 }
 
 func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
 	appDir, _ := os.Getwd()
-	resourcesPath := filepath.Join(appDir, "resources", "meta.json")
+	resourcesPath := filepath.Join(appDir, "resources", "config", "meta.json")
 	if _, err := os.Stat(resourcesPath); os.IsNotExist(err) {
 		btnContinue.Disable()
-		errorLabel.Text = "[FATL]: \"resources\" не найдено."
+		errorLabel.Text = conf.IntegrityError
 		errorLabel.Refresh()
 	} else {
 		btnContinue.Enable()
@@ -161,14 +211,14 @@ func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
 	}
 }
 
-func checkExecutable(selectedPath string, btnContinue *widget.Button, errorLabel *canvas.Text) {
-	executablePath := filepath.Join(selectedPath, "ENA-4-DreamBBQ.exe")
+func checkExecutable(selectedPath string, btnInstall *widget.Button, errorLabel *canvas.Text) {
+	executablePath := filepath.Join(selectedPath, conf.ExecutableName)
 	if _, err := os.Stat(executablePath); os.IsNotExist(err) {
-		btnContinue.Disable()
-		errorLabel.Text = "[ERROR]: \"ENA-4-DreamBBQ.exe\" не найден, выберите папку с исполняемым файлом игры"
+		btnInstall.Disable()
+		errorLabel.Text = fmt.Sprintf(conf.ExecutableError, conf.ExecutableName)
 		errorLabel.Refresh()
 	} else {
-		btnContinue.Enable()
+		btnInstall.Enable()
 		errorLabel.Text = ""
 		errorLabel.Refresh()
 	}
@@ -194,10 +244,10 @@ func pageEnd(path string) *fyne.Container {
 	_ = os.RemoveAll(filepath.Join(appDir, "resources"))
 
 	if err != nil {
-		errLabel := canvas.NewText("[FATL]: Произошла критическая ошибка при инъекции ассетов.", color.RGBA{R: 255, A: 255})
+		errLabel := canvas.NewText(conf.InjectionError, color.RGBA{R: 255, A: 255})
 		errCode := canvas.NewText("[FATL]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
 
-		buttonClose := widget.NewButtonWithIcon("Закрыть", theme.WindowCloseIcon(), func() {
+		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
 			fyne.CurrentApp().Quit()
 		})
 
@@ -210,8 +260,8 @@ func pageEnd(path string) *fyne.Container {
 		)
 		return pageEndContainer
 	} else {
-		label := widget.NewLabel("Спасибо за установку")
-		buttonClose := widget.NewButtonWithIcon("Закрыть", theme.WindowCloseIcon(), func() {
+		label := widget.NewLabel(conf.ThanksLabel)
+		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
 			fyne.CurrentApp().Quit()
 		})
 
