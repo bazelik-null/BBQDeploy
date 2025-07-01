@@ -2,17 +2,14 @@
 ButtonClose = ""
 ExecutableName = ""
 Name = ""
-#Downloading page
-WindowTitle = ""
-LoadingLabel = ""
 # Download error
 DownloadErrorLabel = "" #First page
 MainLabel = ""
 TeamLabel = "" # Don't forget 2 spaces at start
 ButtonContinue = ""
 # Second page
-isSteamEnabled = false
-isCheckExecutableEnabled = false
+isSteamDisabled = false
+isCheckExecutableDisabled = false
 ChoosePathLabel = ""
 ButtonInstall = ""
 LabelPath = ""

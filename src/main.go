@@ -22,9 +22,6 @@ type Config struct {
 	ButtonClose    string
 	ExecutableName string
 	Name           string
-	// Downloading page
-	WindowTitle  string
-	LoadingLabel string
 	// Download error
 	DownloadError string
 	// First page
@@ -32,12 +29,12 @@ type Config struct {
 	TeamLabel      string
 	ButtonContinue string
 	// Second page
-	isSteamEnabled           bool
-	isCheckExecutableEnabled bool
-	ChoosePathLabel          string
-	ButtonInstall            string
-	LabelPath                string
-	ButtonBrowse             string
+	isSteamDisabled           bool
+	isCheckExecutableDisabled bool
+	ChoosePathLabel           string
+	ButtonInstall             string
+	LabelPath                 string
+	ButtonBrowse              string
 	// Executable error
 	ExecutableError string
 	// Integrity error
@@ -51,21 +48,12 @@ type Config struct {
 var conf Config
 
 func main() {
-	// Extract data from config
-	appDir, _ := os.Getwd()
-	tomlPath := filepath.Join(appDir, "resources", "config", "config.toml")
-	tomlData, _ := os.ReadFile(tomlPath)
-	_, err := toml.Decode(string(tomlData), &conf)
-	if err != nil {
-		fmt.Println(err)
-	}
-
 	// Init app
 	a := app.New()
-	w := a.NewWindow(conf.WindowTitle)
+	w := a.NewWindow("BBQDeploy")
 	w.Resize(fyne.NewSize(800, 600))
 
-	loadingLabel := widget.NewLabel(conf.LoadingLabel)
+	loadingLabel := widget.NewLabel("Downloading resources, please wait...")
 	loadingWidget := widget.NewActivity()
 	loadingWidget.Start()
 
@@ -85,6 +73,14 @@ func main() {
 		if err != 0 {
 			w.SetContent(pageERR(w, err))
 		} else {
+			// Extract data from config
+			appDir, _ := os.Getwd()
+			tomlPath := filepath.Join(appDir, "resources", "config", "config.toml")
+			tomlData, _ := os.ReadFile(tomlPath)
+			_, err := toml.Decode(string(tomlData), &conf)
+			if err != nil {
+				fmt.Println(err)
+			}
 			fyne.Do(func() {
 				w.SetContent(page0(w))
 			})
@@ -160,7 +156,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 			path = filepath.Join(homeDir, ".steam", "root", "steamapps", "common", conf.Name)
 		}
 		// Check if there is executable game file
-		if conf.isCheckExecutableEnabled {
+		if conf.isCheckExecutableDisabled == false {
 			checkExecutable(path, btnInstall, errorLabel)
 		}
 		// Display chosen path
@@ -171,7 +167,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		browseFile(w, func(selectedPath string) {
 			path = selectedPath
 			// Check if there is executable game file
-			if conf.isCheckExecutableEnabled {
+			if conf.isCheckExecutableDisabled == false {
 				checkExecutable(path, btnInstall, errorLabel)
 			}
 			// Display chosen path
@@ -179,7 +175,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		})
 	})
 
-	if !conf.isCheckExecutableEnabled {
+	if conf.isCheckExecutableDisabled == true {
 		btnInstall.Enable()
 	}
 
@@ -194,7 +190,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		),
 	)
 
-	if conf.isSteamEnabled {
+	if conf.isSteamDisabled == true {
 		btnSteam.Hide()
 	}
 
