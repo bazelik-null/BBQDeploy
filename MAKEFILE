@@ -2,26 +2,26 @@ OUTPUT_WINDOWS=./bin/Installer-Windows.exe
 OUTPUT_LINUX=./bin/Installer-Linux
 
 windows:
-	@echo "Сборка проекта для Windows..."
+	@echo "Building project for Windows..."
 	@GOOS=windows go build -ldflags="-s -w -H=windowsgui" -o $(OUTPUT_WINDOWS) ./src/*.go
 
 linux:
-	@echo "Сборка проекта для Linux..."
+	@echo "Building project for Linux..."
 	@GOOS=linux go build -ldflags="-s -w" -o $(OUTPUT_LINUX) ./src/*.go
 
 all:
-	@echo "Сборка проекта для Windows..."
+	@echo "Building project for Windows..."
 	@GOOS=windows go build -ldflags="-s -w -H=windowsgui" -o $(OUTPUT_WINDOWS) ./src/*.go
-	@echo "Сборка проекта для Linux..."
+	@echo "Building project for Linux..."
 	@GOOS=linux go build -ldflags="-s -w" -o $(OUTPUT_LINUX) ./src/*.go
 
 clean:
-	@echo "Очистка..."
+	@echo "Cleaning up..."
 	@$(RM) $(OUTPUT_WINDOWS) $(OUTPUT_LINUX)
 
 help:
-	@echo "Используйте 'make windows' для сборки Windows версии."
-	@echo "Используйте 'make linux' для сборки Linux версии."
-	@echo "Используйте 'make clean' для очистки."
+	@echo "Use 'make windows' to build the Windows version."
+	@echo "Use 'make linux' to build the Linux version."
+	@echo "Use 'make clean' to clean up."
 
 .PHONY: all windows linux clean help
