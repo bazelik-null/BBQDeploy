@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
@@ -10,37 +9,20 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
 	"github.com/BurntSushi/toml"
 	"github.com/bazelik-null/BBQDeploy/src/plugin"
+	"github.com/bazelik-null/BBQDeploy/src/pluginapi"
+
+	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
 )
 
-type Config struct {
-	// Global
-	ButtonClose string
-	// First page
-	MainLabel      string
-	TeamLabel      string
-	ButtonContinue string
-	// Second page
-	ChoosePathLabel string
-	ButtonInstall   string
-	LabelPath       string
-	ButtonBrowse    string
-	// Integrity error
-	IntegrityError string
-	// Injection error
-	InjectionError string
-	// Third page
-	ThanksLabel string
-}
-
-var conf Config
+var conf pluginapi.Config
 
 func main() {
-	// Init app
 	a := app.New()
 	w := a.NewWindow("BBQDeploy")
 	w.Resize(fyne.NewSize(800, 600))
@@ -49,17 +31,15 @@ func main() {
 	loadingWidget := widget.NewActivity()
 	loadingWidget.Start()
 
-	init := container.New(layout.NewCenterLayout(),
+	initContainer := container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
 			loadingLabel,
 			loadingWidget,
 		),
 	)
-
-	w.SetContent(init)
+	w.SetContent(initContainer)
 	w.Show()
 
-	// Download files in goroutine
 	go func() {
 		err := download()
 		if err != 0 {
@@ -88,41 +68,31 @@ func main() {
 }
 
 func page0(w fyne.Window) *fyne.Container {
-	type Package struct {
-		mainLabel  *widget.Label
-		teamLabel  *canvas.Text
-		errorLabel *canvas.Text
-		page0      *fyne.Container
+	pkg := &pluginapi.Page0Package{
+		MainLabel:  widget.NewLabel(conf.MainLabel),
+		TeamLabel:  canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255}),
+		ErrorLabel: canvas.NewText("", color.RGBA{R: 255, A: 255}),
 	}
-
-	var pkg Package
-
-	pkg.mainLabel = widget.NewLabel(conf.MainLabel)
-
-	pkg.teamLabel = canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255})
-	pkg.teamLabel.TextSize = 12
-
-	pkg.errorLabel = canvas.NewText("", color.RGBA{R: 255, A: 255})
 
 	btnContinue := widget.NewButton(conf.ButtonContinue, func() {
 		w.SetContent(pageInstall(w))
 	})
 
-	pkg.page0 = container.New(layout.NewCenterLayout(),
+	pkg.Container = container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
-			pkg.mainLabel,
-			pkg.teamLabel,
+			pkg.MainLabel,
+			pkg.TeamLabel,
 			btnContinue,
-			pkg.errorLabel,
+			pkg.ErrorLabel,
 		),
 	)
 
-	// Check integrity of downloaded files
-	checkIntegrity(btnContinue, pkg.errorLabel)
+	// Integrity check
+	checkIntegrity(btnContinue, pkg.ErrorLabel)
 
-	plugin.Global.Entry("Page0", &pkg)
+	plugin.Global.Entry("Page0", pkg)
 
-	return pkg.page0
+	return pkg.Container
 }
 
 func pageERR(_ fyne.Window, err int) *fyne.Container {
@@ -144,43 +114,34 @@ func pageERR(_ fyne.Window, err int) *fyne.Container {
 }
 
 func pageInstall(w fyne.Window) *fyne.Container {
-	type Package struct {
-		path        string
-		labelPath   *widget.Label
-		pageInstall *fyne.Container
-	}
-
-	var pkg Package
+	pkg := &pluginapi.PageInstallPackage{}
 
 	choosePathLabel := widget.NewLabel(conf.ChoosePathLabel)
-	pkg.labelPath = widget.NewLabel("")
-
-	btnInstall := widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
-		w.SetContent(pageEnd(pkg.path))
+	pkg.LabelPath = widget.NewLabel("")
+	pkg.BtnInstall = widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
+		w.SetContent(pageEnd(pkg.Path))
 	})
-	btnInstall.Disable()
+	pkg.BtnInstall.Disable()
 
 	btnBrowse := widget.NewButtonWithIcon(conf.ButtonBrowse, theme.SearchIcon(), func() {
-		browseFile(w, func(selectedPath string) {
-			pkg.path = selectedPath
-			// Display chosen path
-			pkg.labelPath.SetText(conf.LabelPath + pkg.path)
-			btnInstall.Enable()
+		browseFile(w, func(sel string) {
+			pkg.Path = sel
+			pkg.LabelPath.SetText(conf.LabelPath + sel)
+			pkg.BtnInstall.Enable()
 		})
 	})
 
-	pkg.pageInstall = container.New(layout.NewCenterLayout(),
+	pkg.Container = container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
 			choosePathLabel,
 			btnBrowse,
-			pkg.labelPath,
-			btnInstall,
+			pkg.LabelPath,
+			pkg.BtnInstall,
 		),
 	)
 
-	plugin.Global.Entry("PageInstall", &pkg)
-
-	return pkg.pageInstall
+	plugin.Global.Entry("PageInstall", pkg)
+	return pkg.Container
 }
 
 func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
@@ -213,7 +174,8 @@ func pageEnd(path string) *fyne.Container {
 	appDir, _ := os.Getwd()
 
 	err := install(path)
-	plugin.Global.Entry("AfterInstall", path)
+
+	plugin.Global.Entry("AfterInstall", pluginapi.AfterInstallPayload(path))
 
 	_ = os.RemoveAll(filepath.Join(appDir, "resources"))
 
@@ -225,37 +187,31 @@ func pageEnd(path string) *fyne.Container {
 			fyne.CurrentApp().Quit()
 		})
 
-		pageEndContainer := container.New(layout.NewCenterLayout(),
+		return container.New(layout.NewCenterLayout(),
 			container.New(layout.NewVBoxLayout(),
 				errLabel,
 				errCode,
 				buttonClose,
 			),
 		)
-		return pageEndContainer
-	} else {
-
-		type Package struct {
-			label            *widget.Label
-			pageEndContainer *fyne.Container
-		}
-
-		var pkg Package
-
-		pkg.label = widget.NewLabel(conf.ThanksLabel)
-		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
-			fyne.CurrentApp().Quit()
-		})
-
-		pkg.pageEndContainer = container.New(layout.NewCenterLayout(),
-			container.New(layout.NewVBoxLayout(),
-				pkg.label,
-				buttonClose,
-			),
-		)
-
-		plugin.Global.Entry("PageEnd", &pkg)
-
-		return pkg.pageEndContainer
 	}
+
+	pkg := &pluginapi.PageEndPackage{
+		Label: widget.NewLabel(conf.ThanksLabel),
+	}
+
+	buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
+		fyne.CurrentApp().Quit()
+	})
+
+	pkg.Container = container.New(layout.NewCenterLayout(),
+		container.New(layout.NewVBoxLayout(),
+			pkg.Label,
+			buttonClose,
+		),
+	)
+
+	plugin.Global.Entry("PageEnd", pkg)
+
+	return pkg.Container
 }

@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 
+	"github.com/bazelik-null/BBQDeploy/src/pluginapi"
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
 )
@@ -25,7 +27,18 @@ var Global = NewManager()
 // NewManager creates a Yaegi interpreter and prepares hook storage
 func NewManager() *Manager {
 	i := interp.New(interp.Options{})
-	_ = i.Use(stdlib.Symbols) // enables standards libs
+
+	_ = i.Use(stdlib.Symbols)
+
+	_ = i.Use(map[string]map[string]reflect.Value{
+		"github.com/bazelik-null/BBQDeploy/src/pluginapi": {
+			"Page0Package":        reflect.ValueOf((*pluginapi.Page0Package)(nil)),
+			"PageInstallPackage":  reflect.ValueOf((*pluginapi.PageInstallPackage)(nil)),
+			"PageEndPackage":      reflect.ValueOf((*pluginapi.PageEndPackage)(nil)),
+			"AfterInstallPayload": reflect.ValueOf((*pluginapi.AfterInstallPayload)(nil)),
+		},
+	})
+
 	return &Manager{
 		interpreter: i,
 		hooks:       make(map[string][]Handler),
