@@ -13,8 +13,10 @@ import (
 func getURL() (string, int) {
 	client := &http.Client{}
 
-	repoOwner := "bazelik-null"
-	repoName := "ENAbbq_rus"
+	var (
+		repoOwner = "undefined"
+		repoName  = "undefined"
+	)
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", repoOwner, repoName), nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
