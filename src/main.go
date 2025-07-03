@@ -88,41 +88,41 @@ func main() {
 }
 
 func page0(w fyne.Window) *fyne.Container {
-	mainLabel := widget.NewLabel(conf.MainLabel)
-
-	teamLabel := canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255})
-	teamLabel.TextSize = 12
-
-	errorLabel := canvas.NewText("", color.RGBA{R: 255, A: 255})
-
-	btnContinue := widget.NewButton(conf.ButtonContinue, func() {
-		w.SetContent(pageInstall(w))
-	})
-
-	page0 := container.New(layout.NewCenterLayout(),
-		container.New(layout.NewVBoxLayout(),
-			mainLabel,
-			teamLabel,
-			btnContinue,
-			errorLabel,
-		),
-	)
-
-	// Check integrity of downloaded files
-	checkIntegrity(btnContinue, errorLabel)
-
 	type Package struct {
-		mainLabel  string
-		teamLabel  string
-		errorLabel string
+		mainLabel  *widget.Label
+		teamLabel  *canvas.Text
+		errorLabel *canvas.Text
 		page0      *fyne.Container
 	}
 
 	var pkg Package
 
+	pkg.mainLabel = widget.NewLabel(conf.MainLabel)
+
+	pkg.teamLabel = canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255})
+	pkg.teamLabel.TextSize = 12
+
+	pkg.errorLabel = canvas.NewText("", color.RGBA{R: 255, A: 255})
+
+	btnContinue := widget.NewButton(conf.ButtonContinue, func() {
+		w.SetContent(pageInstall(w))
+	})
+
+	pkg.page0 = container.New(layout.NewCenterLayout(),
+		container.New(layout.NewVBoxLayout(),
+			pkg.mainLabel,
+			pkg.teamLabel,
+			btnContinue,
+			pkg.errorLabel,
+		),
+	)
+
+	// Check integrity of downloaded files
+	checkIntegrity(btnContinue, pkg.errorLabel)
+
 	plugin.Global.Entry("Page0", pkg)
 
-	return page0
+	return pkg.page0
 }
 
 func pageERR(_ fyne.Window, err int) *fyne.Container {
@@ -144,45 +144,43 @@ func pageERR(_ fyne.Window, err int) *fyne.Container {
 }
 
 func pageInstall(w fyne.Window) *fyne.Container {
-	var path string
-
-	choosePathLabel := widget.NewLabel(conf.ChoosePathLabel)
-	labelPath := widget.NewLabel("")
-
-	btnInstall := widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
-		w.SetContent(pageEnd(path))
-	})
-	btnInstall.Disable()
-
-	btnBrowse := widget.NewButtonWithIcon(conf.ButtonBrowse, theme.SearchIcon(), func() {
-		browseFile(w, func(selectedPath string) {
-			path = selectedPath
-			// Display chosen path
-			labelPath.SetText(conf.LabelPath + path)
-			btnInstall.Enable()
-		})
-	})
-
-	pageInstall := container.New(layout.NewCenterLayout(),
-		container.New(layout.NewVBoxLayout(),
-			choosePathLabel,
-			btnBrowse,
-			labelPath,
-			btnInstall,
-		),
-	)
-
 	type Package struct {
 		path        string
-		labelPath   string
+		labelPath   *widget.Label
 		pageInstall *fyne.Container
 	}
 
 	var pkg Package
 
+	choosePathLabel := widget.NewLabel(conf.ChoosePathLabel)
+	pkg.labelPath = widget.NewLabel("")
+
+	btnInstall := widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
+		w.SetContent(pageEnd(pkg.path))
+	})
+	btnInstall.Disable()
+
+	btnBrowse := widget.NewButtonWithIcon(conf.ButtonBrowse, theme.SearchIcon(), func() {
+		browseFile(w, func(selectedPath string) {
+			pkg.path = selectedPath
+			// Display chosen path
+			pkg.labelPath.SetText(conf.LabelPath + pkg.path)
+			btnInstall.Enable()
+		})
+	})
+
+	pkg.pageInstall = container.New(layout.NewCenterLayout(),
+		container.New(layout.NewVBoxLayout(),
+			choosePathLabel,
+			btnBrowse,
+			pkg.labelPath,
+			btnInstall,
+		),
+	)
+
 	plugin.Global.Entry("PageInstall", pkg)
 
-	return pageInstall
+	return pkg.pageInstall
 }
 
 func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
@@ -236,27 +234,28 @@ func pageEnd(path string) *fyne.Container {
 		)
 		return pageEndContainer
 	} else {
-		label := widget.NewLabel(conf.ThanksLabel)
-		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
-			fyne.CurrentApp().Quit()
-		})
-
-		pageEndContainer := container.New(layout.NewCenterLayout(),
-			container.New(layout.NewVBoxLayout(),
-				label,
-				buttonClose,
-			),
-		)
 
 		type Package struct {
-			label            string
+			label            *widget.Label
 			pageEndContainer *fyne.Container
 		}
 
 		var pkg Package
 
+		pkg.label = widget.NewLabel(conf.ThanksLabel)
+		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
+			fyne.CurrentApp().Quit()
+		})
+
+		pkg.pageEndContainer = container.New(layout.NewCenterLayout(),
+			container.New(layout.NewVBoxLayout(),
+				pkg.label,
+				buttonClose,
+			),
+		)
+
 		plugin.Global.Entry("PageEnd", pkg)
 
-		return pageEndContainer
+		return pkg.pageEndContainer
 	}
 }
