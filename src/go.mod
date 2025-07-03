@@ -1,4 +1,4 @@
-module github.com/bazelik-null/BBQDeploy
+module github.com/bazelik-null/BBQDeploy/plugins
 
 go 1.24.1
 

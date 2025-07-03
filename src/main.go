@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/BurntSushi/toml"
-	"github.com/bazelik-null/BBQDeploy/plugin"
+	"github.com/bazelik-null/BBQDeploy/plugins/plugin"
 	"image/color"
 	"os"
 	"path/filepath"
