@@ -5,6 +5,7 @@ go 1.24.1
 require (
 	fyne.io/fyne/v2 v2.6.1
 	github.com/BurntSushi/toml v1.5.0
+	github.com/bazelik-null/BBQDeploy v0.0.0-20250703114607-c0b629882510
 )
 
 require (
