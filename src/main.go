@@ -29,8 +29,6 @@ type Config struct {
 	ButtonInstall   string
 	LabelPath       string
 	ButtonBrowse    string
-	// Executable error
-	ExecutableError string
 	// Integrity error
 	IntegrityError string
 	// Injection error
@@ -113,7 +111,16 @@ func page0(w fyne.Window) *fyne.Container {
 	// Check integrity of downloaded files
 	checkIntegrity(btnContinue, errorLabel)
 
-	plugin.Global.Entry("Page0", page0)
+	type Package struct {
+		mainLabel  string
+		teamLabel  string
+		errorLabel string
+		page0      *fyne.Container
+	}
+
+	var pkg Package
+
+	plugin.Global.Entry("Page0", pkg)
 
 	return page0
 }
@@ -165,7 +172,15 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		),
 	)
 
-	plugin.Global.Entry("PageInstall", pageInstall)
+	type Package struct {
+		path        string
+		labelPath   string
+		pageInstall *fyne.Container
+	}
+
+	var pkg Package
+
+	plugin.Global.Entry("PageInstall", pkg)
 
 	return pageInstall
 }
@@ -233,7 +248,14 @@ func pageEnd(path string) *fyne.Container {
 			),
 		)
 
-		plugin.Global.Entry("PageEnd", pageEndContainer)
+		type Package struct {
+			label            string
+			pageEndContainer *fyne.Container
+		}
+
+		var pkg Package
+
+		plugin.Global.Entry("PageEnd", pkg)
 
 		return pageEndContainer
 	}
