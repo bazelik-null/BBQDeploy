@@ -1,19 +1,21 @@
 OUTPUT_WINDOWS=./bin/Installer-Windows.exe
 OUTPUT_LINUX=./bin/Installer-Linux
+OWNER=undefined
+NAME=undefined
 
 windows:
 	@echo "Building project for Windows..."
-	@GOOS=windows go build -ldflags="-s -w -H=windowsgui" -o $(OUTPUT_WINDOWS) ./src/*.go
+	@GOOS=windows go build -ldflags="-s -w -H=windowsgui -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_WINDOWS) ./BBQDeploy/src/*.go
 
 linux:
 	@echo "Building project for Linux..."
-	@GOOS=linux go build -ldflags="-s -w" -o $(OUTPUT_LINUX) ./src/*.go
+	@GOOS=linux go build -ldflags="-s -w -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_LINUX) ./BBQDeploy/src/*.go
 
 all:
 	@echo "Building project for Windows..."
-	@GOOS=windows go build -ldflags="-s -w -H=windowsgui" -o $(OUTPUT_WINDOWS) ./src/*.go
+	@GOOS=windows go build -ldflags="-s -w -H=windowsgui -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_WINDOWS) ./BBQDeploy/src/*.go
 	@echo "Building project for Linux..."
-	@GOOS=linux go build -ldflags="-s -w" -o $(OUTPUT_LINUX) ./src/*.go
+	@GOOS=linux go build -ldflags="-s -w -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_LINUX) ./BBQDeploy/src/*.go
 
 clean:
 	@echo "Cleaning up..."

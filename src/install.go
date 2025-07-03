@@ -9,7 +9,7 @@ import (
 
 func install(path string) error {
 	appDir, _ := os.Getwd()
-	metaPath := filepath.Join(appDir, "resources", "meta.json")
+	metaPath := filepath.Join(appDir, "resources", "config", "meta.json")
 
 	// Open meta.json
 	data, err := os.ReadFile(metaPath)

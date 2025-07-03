@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
@@ -10,45 +9,20 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+
 	"github.com/BurntSushi/toml"
+	"github.com/bazelik-null/BBQDeploy/src/plugin"
+	"github.com/bazelik-null/BBQDeploy/src/pluginapi"
+
+	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
-type Config struct {
-	// Global
-	ButtonClose    string
-	ExecutableName string
-	Name           string
-	// Download error
-	DownloadError string
-	// First page
-	MainLabel      string
-	TeamLabel      string
-	ButtonContinue string
-	// Second page
-	isSteamEnabled           bool
-	isCheckExecutableEnabled bool
-	ChoosePathLabel          string
-	ButtonInstall            string
-	LabelPath                string
-	ButtonBrowse             string
-	// Executable error
-	ExecutableError string
-	// Integrity error
-	IntegrityError string
-	// Injection error
-	InjectionError string
-	// Third page
-	ThanksLabel string
-}
-
-var conf Config
+var conf pluginapi.Config
 
 func main() {
-	// Init app
 	a := app.New()
 	w := a.NewWindow("BBQDeploy")
 	w.Resize(fyne.NewSize(800, 600))
@@ -57,17 +31,15 @@ func main() {
 	loadingWidget := widget.NewActivity()
 	loadingWidget.Start()
 
-	init := container.New(layout.NewCenterLayout(),
+	initContainer := container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
 			loadingLabel,
 			loadingWidget,
 		),
 	)
-
-	w.SetContent(init)
+	w.SetContent(initContainer)
 	w.Show()
 
-	// Download files in goroutine
 	go func() {
 		err := download()
 		if err != 0 {
@@ -81,6 +53,11 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
+
+			// Import and load plugins
+			pluginDir := filepath.Join(appDir, "resources", "plugins")
+			plugin.Global.LoadPlugins(pluginDir)
+
 			fyne.Do(func() {
 				w.SetContent(page0(w))
 			})
@@ -91,34 +68,35 @@ func main() {
 }
 
 func page0(w fyne.Window) *fyne.Container {
-	mainLabel := widget.NewLabel(conf.MainLabel)
-
-	teamLabel := canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255})
-	teamLabel.TextSize = 12
-
-	errorLabel := canvas.NewText("", color.RGBA{R: 255, A: 255})
+	pkg := &pluginapi.Page0Package{
+		MainLabel:  widget.NewLabel(conf.MainLabel),
+		TeamLabel:  canvas.NewText(conf.TeamLabel, color.RGBA{R: 169, G: 169, B: 169, A: 255}),
+		ErrorLabel: canvas.NewText("", color.RGBA{R: 255, A: 255}),
+	}
 
 	btnContinue := widget.NewButton(conf.ButtonContinue, func() {
 		w.SetContent(pageInstall(w))
 	})
 
-	page0 := container.New(layout.NewCenterLayout(),
+	pkg.Container = container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
-			mainLabel,
-			teamLabel,
+			pkg.MainLabel,
+			pkg.TeamLabel,
 			btnContinue,
-			errorLabel,
+			pkg.ErrorLabel,
 		),
 	)
 
-	// Check integrity of downloaded files
-	checkIntegrity(btnContinue, errorLabel)
+	// Integrity check
+	checkIntegrity(btnContinue, pkg.ErrorLabel)
 
-	return page0
+	plugin.Global.Entry("Page0", pkg)
+
+	return pkg.Container
 }
 
 func pageERR(_ fyne.Window, err int) *fyne.Container {
-	errLabel := canvas.NewText(conf.DownloadError, color.RGBA{R: 255, A: 255})
+	errLabel := canvas.NewText("[FATL]: Download failed", color.RGBA{R: 255, A: 255})
 	errCode := canvas.NewText("[FATL]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
 
 	buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
@@ -136,65 +114,34 @@ func pageERR(_ fyne.Window, err int) *fyne.Container {
 }
 
 func pageInstall(w fyne.Window) *fyne.Container {
-	var path string
+	pkg := &pluginapi.PageInstallPackage{}
 
 	choosePathLabel := widget.NewLabel(conf.ChoosePathLabel)
-	labelPath := widget.NewLabel("")
-	errorLabel := canvas.NewText("", color.RGBA{R: 255, A: 255})
-
-	btnInstall := widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
-		w.SetContent(pageEnd(path))
+	pkg.LabelPath = widget.NewLabel("")
+	pkg.BtnInstall = widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
+		w.SetContent(pageEnd(pkg.Path))
 	})
-	btnInstall.Disable()
-
-	btnSteam := widget.NewButtonWithIcon("Steam", theme.ComputerIcon(), func() {
-		// Choose default path to game depending on OS
-		if runtime.GOOS == "windows" {
-			path = filepath.Join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", conf.Name)
-		} else {
-			homeDir := os.Getenv("HOME")
-			path = filepath.Join(homeDir, ".steam", "root", "steamapps", "common", conf.Name)
-		}
-		// Check if there is executable game file
-		if conf.isCheckExecutableEnabled == false {
-			checkExecutable(path, btnInstall, errorLabel)
-		}
-		// Display chosen path
-		labelPath.SetText(conf.LabelPath + path)
-	})
+	pkg.BtnInstall.Disable()
 
 	btnBrowse := widget.NewButtonWithIcon(conf.ButtonBrowse, theme.SearchIcon(), func() {
-		browseFile(w, func(selectedPath string) {
-			path = selectedPath
-			// Check if there is executable game file
-			if conf.isCheckExecutableEnabled == false {
-				checkExecutable(path, btnInstall, errorLabel)
-			}
-			// Display chosen path
-			labelPath.SetText(conf.LabelPath + path)
+		browseFile(w, func(sel string) {
+			pkg.Path = sel
+			pkg.LabelPath.SetText(conf.LabelPath + sel)
+			pkg.BtnInstall.Enable()
 		})
 	})
 
-	if conf.isCheckExecutableEnabled == true {
-		btnInstall.Enable()
-	}
-
-	pageInstall := container.New(layout.NewCenterLayout(),
+	pkg.Container = container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
 			choosePathLabel,
-			btnSteam,
 			btnBrowse,
-			labelPath,
-			errorLabel,
-			btnInstall,
+			pkg.LabelPath,
+			pkg.BtnInstall,
 		),
 	)
 
-	if conf.isSteamEnabled == true {
-		btnSteam.Hide()
-	}
-
-	return pageInstall
+	plugin.Global.Entry("PageInstall", pkg)
+	return pkg.Container
 }
 
 func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
@@ -206,19 +153,6 @@ func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
 		errorLabel.Refresh()
 	} else {
 		btnContinue.Enable()
-		errorLabel.Text = ""
-		errorLabel.Refresh()
-	}
-}
-
-func checkExecutable(selectedPath string, btnInstall *widget.Button, errorLabel *canvas.Text) {
-	executablePath := filepath.Join(selectedPath, conf.ExecutableName)
-	if _, err := os.Stat(executablePath); os.IsNotExist(err) {
-		btnInstall.Disable()
-		errorLabel.Text = fmt.Sprintf(conf.ExecutableError, conf.ExecutableName)
-		errorLabel.Refresh()
-	} else {
-		btnInstall.Enable()
 		errorLabel.Text = ""
 		errorLabel.Refresh()
 	}
@@ -241,36 +175,43 @@ func pageEnd(path string) *fyne.Container {
 
 	err := install(path)
 
+	plugin.Global.Entry("AfterInstall", pluginapi.AfterInstallPayload(path))
+
 	_ = os.RemoveAll(filepath.Join(appDir, "resources"))
 
 	if err != nil {
 		errLabel := canvas.NewText(conf.InjectionError, color.RGBA{R: 255, A: 255})
-		errCode := canvas.NewText("[FATL]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
+		errCode := canvas.NewText("[ERROR]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
 
 		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
 			fyne.CurrentApp().Quit()
 		})
 
-		pageEndContainer := container.New(layout.NewCenterLayout(),
+		return container.New(layout.NewCenterLayout(),
 			container.New(layout.NewVBoxLayout(),
 				errLabel,
 				errCode,
 				buttonClose,
 			),
 		)
-		return pageEndContainer
-	} else {
-		label := widget.NewLabel(conf.ThanksLabel)
-		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
-			fyne.CurrentApp().Quit()
-		})
-
-		pageEndContainer := container.New(layout.NewCenterLayout(),
-			container.New(layout.NewVBoxLayout(),
-				label,
-				buttonClose,
-			),
-		)
-		return pageEndContainer
 	}
+
+	pkg := &pluginapi.PageEndPackage{
+		Label: widget.NewLabel(conf.ThanksLabel),
+	}
+
+	buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
+		fyne.CurrentApp().Quit()
+	})
+
+	pkg.Container = container.New(layout.NewCenterLayout(),
+		container.New(layout.NewVBoxLayout(),
+			pkg.Label,
+			buttonClose,
+		),
+	)
+
+	plugin.Global.Entry("PageEnd", pkg)
+
+	return pkg.Container
 }
