@@ -120,7 +120,7 @@ func page0(w fyne.Window) *fyne.Container {
 
 	var pkg Package
 
-	plugin.Global.Entry("Page0", pkg)
+	plugin.Global.Entry("Page0", &pkg)
 
 	return page0
 }
@@ -180,7 +180,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 
 	var pkg Package
 
-	plugin.Global.Entry("PageInstall", pkg)
+	plugin.Global.Entry("PageInstall", &pkg)
 
 	return pageInstall
 }
@@ -255,7 +255,7 @@ func pageEnd(path string) *fyne.Container {
 
 		var pkg Package
 
-		plugin.Global.Entry("PageEnd", pkg)
+		plugin.Global.Entry("PageEnd", &pkg)
 
 		return pageEndContainer
 	}
