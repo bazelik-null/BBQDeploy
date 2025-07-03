@@ -11,30 +11,24 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/BurntSushi/toml"
+	"github.com/bazelik-null/BBQDeploy/plugin"
 	"image/color"
 	"os"
 	"path/filepath"
-	"runtime"
 )
 
 type Config struct {
 	// Global
-	ButtonClose    string
-	ExecutableName string
-	Name           string
-	// Download error
-	DownloadError string
+	ButtonClose string
 	// First page
 	MainLabel      string
 	TeamLabel      string
 	ButtonContinue string
 	// Second page
-	isSteamEnabled           bool
-	isCheckExecutableEnabled bool
-	ChoosePathLabel          string
-	ButtonInstall            string
-	LabelPath                string
-	ButtonBrowse             string
+	ChoosePathLabel string
+	ButtonInstall   string
+	LabelPath       string
+	ButtonBrowse    string
 	// Executable error
 	ExecutableError string
 	// Integrity error
@@ -81,6 +75,11 @@ func main() {
 			if err != nil {
 				fmt.Println(err)
 			}
+
+			// Import and load plugins
+			pluginDir := filepath.Join(appDir, "resources", "plugins")
+			plugin.Global.LoadPlugins(pluginDir)
+
 			fyne.Do(func() {
 				w.SetContent(page0(w))
 			})
@@ -114,11 +113,13 @@ func page0(w fyne.Window) *fyne.Container {
 	// Check integrity of downloaded files
 	checkIntegrity(btnContinue, errorLabel)
 
+	plugin.Global.Entry("Page0", page0)
+
 	return page0
 }
 
 func pageERR(_ fyne.Window, err int) *fyne.Container {
-	errLabel := canvas.NewText(conf.DownloadError, color.RGBA{R: 255, A: 255})
+	errLabel := canvas.NewText("[FATL]: Download failed", color.RGBA{R: 255, A: 255})
 	errCode := canvas.NewText("[FATL]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
 
 	buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
@@ -140,59 +141,31 @@ func pageInstall(w fyne.Window) *fyne.Container {
 
 	choosePathLabel := widget.NewLabel(conf.ChoosePathLabel)
 	labelPath := widget.NewLabel("")
-	errorLabel := canvas.NewText("", color.RGBA{R: 255, A: 255})
 
 	btnInstall := widget.NewButtonWithIcon(conf.ButtonInstall, theme.DownloadIcon(), func() {
 		w.SetContent(pageEnd(path))
 	})
 	btnInstall.Disable()
 
-	btnSteam := widget.NewButtonWithIcon("Steam", theme.ComputerIcon(), func() {
-		// Choose default path to game depending on OS
-		if runtime.GOOS == "windows" {
-			path = filepath.Join("C:\\", "Program Files (x86)", "Steam", "steamapps", "common", conf.Name)
-		} else {
-			homeDir := os.Getenv("HOME")
-			path = filepath.Join(homeDir, ".steam", "root", "steamapps", "common", conf.Name)
-		}
-		// Check if there is executable game file
-		if conf.isCheckExecutableEnabled == false {
-			checkExecutable(path, btnInstall, errorLabel)
-		}
-		// Display chosen path
-		labelPath.SetText(conf.LabelPath + path)
-	})
-
 	btnBrowse := widget.NewButtonWithIcon(conf.ButtonBrowse, theme.SearchIcon(), func() {
 		browseFile(w, func(selectedPath string) {
 			path = selectedPath
-			// Check if there is executable game file
-			if conf.isCheckExecutableEnabled == false {
-				checkExecutable(path, btnInstall, errorLabel)
-			}
 			// Display chosen path
 			labelPath.SetText(conf.LabelPath + path)
+			btnInstall.Enable()
 		})
 	})
-
-	if conf.isCheckExecutableEnabled == true {
-		btnInstall.Enable()
-	}
 
 	pageInstall := container.New(layout.NewCenterLayout(),
 		container.New(layout.NewVBoxLayout(),
 			choosePathLabel,
-			btnSteam,
 			btnBrowse,
 			labelPath,
-			errorLabel,
 			btnInstall,
 		),
 	)
 
-	if conf.isSteamEnabled == true {
-		btnSteam.Hide()
-	}
+	plugin.Global.Entry("PageInstall", pageInstall)
 
 	return pageInstall
 }
@@ -206,19 +179,6 @@ func checkIntegrity(btnContinue *widget.Button, errorLabel *canvas.Text) {
 		errorLabel.Refresh()
 	} else {
 		btnContinue.Enable()
-		errorLabel.Text = ""
-		errorLabel.Refresh()
-	}
-}
-
-func checkExecutable(selectedPath string, btnInstall *widget.Button, errorLabel *canvas.Text) {
-	executablePath := filepath.Join(selectedPath, conf.ExecutableName)
-	if _, err := os.Stat(executablePath); os.IsNotExist(err) {
-		btnInstall.Disable()
-		errorLabel.Text = fmt.Sprintf(conf.ExecutableError, conf.ExecutableName)
-		errorLabel.Refresh()
-	} else {
-		btnInstall.Enable()
 		errorLabel.Text = ""
 		errorLabel.Refresh()
 	}
@@ -240,12 +200,13 @@ func pageEnd(path string) *fyne.Container {
 	appDir, _ := os.Getwd()
 
 	err := install(path)
+	plugin.Global.Entry("AfterInstall", path)
 
 	_ = os.RemoveAll(filepath.Join(appDir, "resources"))
 
 	if err != nil {
 		errLabel := canvas.NewText(conf.InjectionError, color.RGBA{R: 255, A: 255})
-		errCode := canvas.NewText("[FATL]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
+		errCode := canvas.NewText("[ERROR]: Error "+fmt.Sprint(err), color.RGBA{R: 255, A: 255})
 
 		buttonClose := widget.NewButtonWithIcon(conf.ButtonClose, theme.WindowCloseIcon(), func() {
 			fyne.CurrentApp().Quit()
@@ -271,6 +232,9 @@ func pageEnd(path string) *fyne.Container {
 				buttonClose,
 			),
 		)
+
+		plugin.Global.Entry("PageEnd", pageEndContainer)
+
 		return pageEndContainer
 	}
 }
