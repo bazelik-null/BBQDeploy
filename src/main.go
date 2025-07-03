@@ -120,7 +120,7 @@ func page0(w fyne.Window) *fyne.Container {
 	// Check integrity of downloaded files
 	checkIntegrity(btnContinue, pkg.errorLabel)
 
-	plugin.Global.Entry("Page0", pkg)
+	plugin.Global.Entry("Page0", &pkg)
 
 	return pkg.page0
 }
@@ -178,7 +178,7 @@ func pageInstall(w fyne.Window) *fyne.Container {
 		),
 	)
 
-	plugin.Global.Entry("PageInstall", pkg)
+	plugin.Global.Entry("PageInstall", &pkg)
 
 	return pkg.pageInstall
 }
@@ -254,7 +254,7 @@ func pageEnd(path string) *fyne.Container {
 			),
 		)
 
-		plugin.Global.Entry("PageEnd", pkg)
+		plugin.Global.Entry("PageEnd", &pkg)
 
 		return pkg.pageEndContainer
 	}
