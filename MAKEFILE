@@ -5,17 +5,37 @@ NAME=undefined
 
 windows:
 	@echo "Building project for Windows..."
-	@GOOS=windows go build -ldflags="-s -w -H=windowsgui -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_WINDOWS) ./BBQDeploy/src/*.go
+	@cd BBQDeploy && \
+	GOOS=windows go build \
+		-ldflags="-s -w -H=windowsgui \
+		-X 'main.repoOwner=$(OWNER)' \
+		-X 'main.repoName=$(NAME)'" \
+		-o ../$(OUTPUT_WINDOWS) ./src/*.go
 
 linux:
 	@echo "Building project for Linux..."
-	@GOOS=linux go build -ldflags="-s -w -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_LINUX) ./BBQDeploy/src/*.go
+	@cd BBQDeploy && \
+	GOOS=linux go build \
+		-ldflags="-s -w \
+		-X 'main.repoOwner=$(OWNER)' \
+		-X 'main.repoName=$(NAME)'" \
+		-o ../$(OUTPUT_LINUX) ./src/*.go
 
 all:
 	@echo "Building project for Windows..."
-	@GOOS=windows go build -ldflags="-s -w -H=windowsgui -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_WINDOWS) ./BBQDeploy/src/*.go
+	@cd BBQDeploy && \
+	GOOS=windows go build \
+		-ldflags="-s -w -H=windowsgui \
+		-X 'main.repoOwner=$(OWNER)' \
+		-X 'main.repoName=$(NAME)'" \
+		-o ../$(OUTPUT_WINDOWS) ./src/*.go
 	@echo "Building project for Linux..."
-	@GOOS=linux go build -ldflags="-s -w -X 'main.repoOwner=$(OWNER)' -X 'main.repoName=$(NAME)'" -o $(OUTPUT_LINUX) ./BBQDeploy/src/*.go
+	@cd BBQDeploy && \
+	GOOS=linux go build \
+		-ldflags="-s -w \
+		-X 'main.repoOwner=$(OWNER)' \
+		-X 'main.repoName=$(NAME)'" \
+		-o ../$(OUTPUT_LINUX) ./src/*.go
 
 clean:
 	@echo "Cleaning up..."
@@ -24,6 +44,7 @@ clean:
 help:
 	@echo "Use 'make windows' to build the Windows version."
 	@echo "Use 'make linux' to build the Linux version."
+	@echo "Use 'make all' to build both versions."
 	@echo "Use 'make clean' to clean up."
 
 .PHONY: all windows linux clean help
